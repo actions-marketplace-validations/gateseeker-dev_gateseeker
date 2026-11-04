@@ -78,20 +78,24 @@ Detailed scope in `docs/SPRINT_6.md` (approved by the PO on 2026-10-31). Checked
 ### Sprint 7 — Admin master and the update notice (approved 2026-11-04)
 Scope in `docs/SPRINT_7.md`: an admin area for the configured logins (accounts, last access with 5-minute precision, activity without findings, the aggregate counters), a User/Admin switch in the sidebar, and a "Gateseeker was updated" notice in open workspaces plus a newer-version line in the CLI and the Action. Private repositories and the paid plan move to Sprint 8.
 
-### Sprint 8 — Private repositories and the first paid plan
-- GitHub App with read-only, per-repository permission to scan private repos (the only way most real client projects can be scanned).
-- Pull-request check from the App: no YAML needed. Install it, choose repos, done. This is the easy path for people who will never edit a workflow file.
+### Sprint 8 — Private repositories through the site
+Scope in `docs/SPRINT_8.md` (proposed 2026-11-04): a GitHub App with read-only, per-repository permission, authorized once on GitHub's own screen; analysis and daily monitoring of private repositories from the workspace, installations listed and revocable in Settings, no credential stored (a one-hour token per analysis). The pull-request check from the App and the paid plan move to Sprint 9.
+
+*Hypothesis:* people bring their real (private) projects once the site can read them. *Metric:* 20 private repositories analyzed, 5 followed.
+
+### Sprint 9 — First paid plan and the App's pull-request check
 - First paid plan (open core, as in `PRODUCT.md` §8): private repos, monitoring, history beyond 30 days. The free tier keeps public scans, the CLI and the Action.
+- Pull-request check from the App: no YAML needed. Install it, choose repos, done. This is the easy path for people who will never edit a workflow file.
 
 *Hypothesis:* someone pays to have a private client project watched. *Metric:* 10 paying accounts.
 
-### Sprint 9 — Agencies and small teams
+### Sprint 10 — Agencies and small teams
 - Workspaces with several members; a "client report" view (PDF already exists) with the agency's name, for freelancers to hand to clients.
 - Gate policy per workspace (which priorities block, which rules are in gate mode), edited on the web and enforced by the Action.
 
 *Hypothesis:* agencies use Gateseeker as a deliverable to their clients. *Metric:* 5 workspaces with ≥3 members or ≥5 client repos.
 
-### Sprint 10 and later (candidates, decided with data)
+### Sprint 11 and later (candidates, decided with data)
 - Optional AI **explanation** of a finding (the third layer of `Finding`, always labeled, never decisive). Paid service, needs approval.
 - Generic secret detection (the gap recorded in `VALIDATION_SPRINT_1.md`), with its own precision budget.
 - More pattern rules for Firebase and Next.js server actions, prioritized by what the monitoring data shows is common.
