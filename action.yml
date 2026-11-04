@@ -1,5 +1,5 @@
 name: "Gateseeker Security Gate"
-description: "Security gate for AI-generated code: known vulnerabilities, supply-chain signals and insecure patterns, with a pass/fail gate."
+description: "Security gate for AI-generated code: known vulnerabilities, supply-chain signals, insecure patterns, pass/fail gate."
 author: "Gateseeker"
 branding:
   icon: "shield"
