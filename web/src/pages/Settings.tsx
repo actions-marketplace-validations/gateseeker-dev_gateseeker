@@ -31,7 +31,7 @@ function Section({ title, description, children }: { title: string; description:
 
 function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b pb-3 last:border-b-0 last:pb-0">
+    <div className="grid gap-x-6 gap-y-1 border-b pb-3 last:border-b-0 last:pb-0 sm:grid-cols-[9rem_1fr]">
       <dt className="text-body text-muted-foreground">{label}</dt>
       <dd className="text-body font-medium">{value}</dd>
     </div>
@@ -51,7 +51,7 @@ export function SettingsPage() {
   const { prefs, setPrefs } = notifications;
 
   return (
-    <div className="grid max-w-[1012px] gap-4">
+    <div className="grid gap-4">
       <div>
         <h1 className="text-display font-medium">Account and preferences</h1>
         <p className="text-label text-muted-foreground">Your account, notifications and what Gateseeker keeps about your analyses.</p>
