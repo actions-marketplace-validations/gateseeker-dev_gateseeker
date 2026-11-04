@@ -39,6 +39,8 @@ A Action já tem o que o Marketplace exige: `action.yml` na raiz com `name`, `de
 
 A partir daí a Action aparece em https://github.com/marketplace e cada release nova atualiza a listagem sozinha.
 
+`1.0.0` (2026-11-04): primeira versão estável, aprovada pelo PO no npm (`latest` agora aponta para ela) e listada no Marketplace como **Gateseeker Security Gate** (https://github.com/marketplace/actions/gateseeker-security-gate). O nome "Gateseeker" sozinho foi recusado pelo Marketplace por coincidir com o usuário `gateseeker` do GitHub, e a descrição precisa ter menos de 125 caracteres; o `action.yml` foi ajustado na main e o GitHub leu a versão corrigida ao editar a release.
+
 ## Primeira versão estável (decisão do PO)
 
 A dist-tag `latest` do npm está na `1.0.0-beta.1`; quem roda `npm install gateseeker` recebe a Sprint 3. O `release.yml` já publica com `--tag latest` qualquer tag sem sufixo (`v1.0.0`), então a correção é publicar a 1.0.0: engenharia sobe `version` para `1.0.0` em `package.json` e `action.yml`, cria a tag, o PO aprova no npm (fluxo acima) e, na mesma release, marca o Marketplace. Alternativa sem versão nova, só para mover a etiqueta: `npm dist-tag add gateseeker@1.0.0-beta.7 latest` no terminal do PO, com o código do autenticador.
