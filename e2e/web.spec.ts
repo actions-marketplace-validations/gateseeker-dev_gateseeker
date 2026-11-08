@@ -79,6 +79,14 @@ test.describe("public page", () => {
     await expect(page.getByText(/in your Scans until/)).toBeVisible();
     await expect(page.locator("#ci")).toContainText("Add this workflow to acme/vibe");
 
+    // Coming back to the tab re-announces the same session: the report stays, nothing is fetched again (no skeleton).
+    const reportCalls: string[] = [];
+    page.on("request", (r) => { if (r.url().includes("/api/reports/")) reportCalls.push(r.url()); });
+    await page.evaluate("window.dispatchEvent(new Event('focus'))");
+    await expect(page.getByRole("region", { name: "Report" })).toBeVisible();
+    await page.waitForTimeout(300);
+    expect(reportCalls).toEqual([]);
+
     // The saved report opens again by its id; the note was for the first visit only.
     await page.reload();
     await expect(page.getByRole("region", { name: "Report" })).toBeVisible();
@@ -544,6 +552,11 @@ test.describe("public page", () => {
     await page.evaluate("window.dispatchEvent(new Event('focus'))");
     const banner = page.getByTestId("update-banner");
     await expect(banner).toBeVisible();
+    // A toast at the bottom of the window, in view even on a long page, not a strip after the content.
+    await expect(banner).toBeInViewport();
+    const box = await banner.boundingBox();
+    const viewport = page.viewportSize();
+    expect(box && viewport ? viewport.height - (box.y + box.height) : 999).toBeLessThan(40);
     await expect(banner).toContainText("updated to 99.0.0");
     await expect(banner.getByRole("button", { name: "Update" })).toBeVisible();
     // "Later" closes the strip for this tab; the bell keeps one notification per version.
