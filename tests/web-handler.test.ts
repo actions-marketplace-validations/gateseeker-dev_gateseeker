@@ -109,7 +109,8 @@ describe("createSupabaseAuth", () => {
     // eslint-disable-next-line @typescript-eslint/require-await
     const f = (async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
       seen.push({ url: typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url, headers: init?.headers as Record<string, string> });
-      return new Response(JSON.stringify({ id: ALICE.id, user_metadata: { user_name: "alice" } }), { status: 200 });
+      // user_metadata is what the user can rewrite with their own session: it says "admin", the GitHub identity says "alice".
+      return new Response(JSON.stringify({ id: ALICE.id, user_metadata: { user_name: "admin" }, identities: [{ provider: "email", identity_data: { user_name: "admin" } }, { provider: "github", identity_data: { user_name: "alice", preferred_username: "alice" } }] }), { status: 200 });
     }) as typeof fetch;
     const v = createSupabaseAuth({ url: "https://p.supabase.co/", anonKey: "anon", fetch: f });
     expect(await v.verify(token)).toEqual(ALICE);
@@ -123,7 +124,9 @@ describe("createSupabaseAuth", () => {
     expect(await mk(() => new Response("not json", { status: 200 })).verify(token)).toBeNull();
     expect(await mk(() => new Response(JSON.stringify({ id: "" }), { status: 200 })).verify(token)).toBeNull();
     expect(await mk(() => { throw new Error("down"); }).verify(token)).toBeNull();
-    const weird = await mk(() => new Response(JSON.stringify({ id: ALICE.id, user_metadata: { user_name: "<script>" } }), { status: 200 })).verify(token);
+    // Only user_metadata, no GitHub identity: no login at all (never trusted for admin or the GitHub App).
+    expect(await mk(() => new Response(JSON.stringify({ id: ALICE.id, user_metadata: { user_name: "alice" } }), { status: 200 })).verify(token)).toEqual({ id: ALICE.id, login: null });
+    const weird = await mk(() => new Response(JSON.stringify({ id: ALICE.id, identities: [{ provider: "github", identity_data: { user_name: "<script>" } }] }), { status: 200 })).verify(token);
     expect(weird).toEqual({ id: ALICE.id, login: null });
   });
 
@@ -574,6 +577,21 @@ describe("daily monitor", () => {
     expect(await handleMonitorRequest({ store: createMemoryStore() }, `Bearer ${secret}`, undefined)).toMatchObject({ status: 401 });
   });
 
+  it("counts a follow that makes the rescan throw as failed, moves it back in the queue and checks the others", async () => {
+    const store = createMemoryStore();
+    await followed(store);
+    await handleFollowsRequest("POST", { owner: "o", repo: "r2" }, { auth, store }, "Bearer tok-alice");
+    // The store throws an unexpected error while saving the report of o/r only (stands in for any engine crash).
+    const crashing: typeof store = { ...store, save: (r) => (r.repo === "r" ? Promise.reject(new TypeError("boom")) : store.save(r)) };
+    const opts = { ...baseOptions(fakeGitHub(CLEAN)), store: crashing, cacheMs: 0 };
+    const out = await handleMonitorRequest(opts, `Bearer ${secret}`, secret);
+    expect(out).toMatchObject({ status: 200, body: { checked: 2, failed: 1 } });
+    const after = await store.listFollows(ALICE.id);
+    expect(after.find((x) => x.repo === "r")).toMatchObject({ failures: 1 });
+    expect(after.every((x) => x.lastScanAt !== null)).toBe(true);
+    expect(after.find((x) => x.repo === "r2")?.lastReportId).toBeTruthy();
+  });
+
   it("takes a baseline first, waits a day, then reports new urgent findings against the previous rescan", async () => {
     let t = Date.parse("2026-11-01T06:00:00Z");
     const now = () => new Date(t);
@@ -637,12 +655,13 @@ describe("daily monitor", () => {
 describe("published advisory feed", () => {
   const KEY = "k".repeat(32);
   const T0 = Date.parse("2026-11-02T12:00:00Z");
-  // The real approved records (never invented ones): the first set leaves the Packagist record out, the second adds it.
+  // The real approved records (never invented ones). The first set holds only records no follow below uses (neither
+  // npm nor Packagist), so whatever else gets approved later cannot change what the tests expect; the second adds Packagist.
   const approved = readdirSync(join(process.cwd(), "advisories", "approved"))
     .filter((n) => n.endsWith(".json"))
     .map((n) => JSON.parse(readFileSync(join(process.cwd(), "advisories", "approved", n), "utf8")) as { id: string; ecosystem: string });
-  const withoutPackagist = JSON.stringify(approved.filter((a) => a.ecosystem !== "Packagist"));
-  const everything = JSON.stringify(approved);
+  const withoutPackagist = JSON.stringify(approved.filter((a) => a.ecosystem !== "Packagist" && a.ecosystem !== "npm"));
+  const everything = JSON.stringify(approved.filter((a) => a.ecosystem !== "npm"));
 
   function signed(payload: string, at: number, key = KEY) {
     const publishedAt = new Date(at).toISOString();
@@ -652,7 +671,7 @@ describe("published advisory feed", () => {
 
   it("has a Packagist record and another one to work with", () => {
     expect(approved.some((a) => a.ecosystem === "Packagist")).toBe(true);
-    expect(approved.some((a) => a.ecosystem !== "Packagist")).toBe(true);
+    expect(approved.some((a) => a.ecosystem !== "Packagist" && a.ecosystem !== "npm")).toBe(true);
   });
 
   it("refuses a set without the key, with a wrong signature, stale, replayed, with invalid records or a wrong digest", async () => {
